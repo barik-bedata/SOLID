@@ -1,6 +1,6 @@
 using System;
 
-namespace SOLID.LSP.Violation2
+namespace SOLID.LSP.Violation
 {
     // ১. বেস ইন্টারফেস
     public interface IPaymentMethod

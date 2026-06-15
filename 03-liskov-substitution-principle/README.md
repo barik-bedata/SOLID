@@ -131,6 +131,14 @@ GiftCardPayment giftCard = new GiftCardPayment();
 * **Parent (Parent Type):** ইন্টারফেস বা বেস ক্লাস (যেমন `IPaymentMethod`) হলো একটি **"ফাঁকা বাক্স"** বা **"লেবেল"**।
 * **Child (Child Type):** যে ক্লাসটি ঐ ইন্টারফেস ইমপ্লিমেন্ট করে (যেমন `CreditCardPayment` বা `GiftCardPayment`), সেটি হলো আসল কাজ করার **"মেশিন"**।
 
+```csharp
+ parent          child
+   |               |
+  IPay p1 = new BkashPay();
+  IPay p2 = new CreditCardPay();
+  IPay p3 = new NagadPay();
+```
+
 যখন আমরা লিখি:
 ```csharp
 IPaymentMethod pay = new CreditCardPayment();
