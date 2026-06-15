@@ -1,59 +1,61 @@
 using System;
 
-namespace SOLID.LSP.Violation
+namespace SOLID.LSP.Violation2
 {
-    // ১. বেস ইন্টারফেস যেখানে পেমেন্ট এবং রিফান্ড করার মেথড আছে
+    // ১. বেস ইন্টারফেস
     public interface IPaymentMethod
     {
         void ProcessPayment(decimal amount);
         void Refund(decimal amount);
     }
 
-    // ২. ক্রেডিট কার্ড পেমেন্ট (এটি প্রসেস এবং রিফান্ড দুটোই করতে পারে)
+    // ২. ক্রেডিট কার্ড (সব মেথড সাপোর্ট করে)
     public class CreditCardPayment : IPaymentMethod
     {
-        public void ProcessPayment(decimal amount)
-        {
-            Console.WriteLine($"Credit Card Processed: {amount}");
-        }
+        public void ProcessPayment(decimal amount) => Console.WriteLine("Card Processed");
+        public void Refund(decimal amount) => Console.WriteLine("Card Refunded");
+    }
 
+    // ৩. গিফট কার্ড (রিফান্ড সাপোর্ট করে না)
+    public class GiftCardPayment : IPaymentMethod
+    {
+        public void ProcessPayment(decimal amount) => Console.WriteLine("Gift Card Processed");
+        
+        // ❌ LSP Violation: ইন্টারফেসের মেথডকে এখানে জোর করে Exception থ্রো করা হচ্ছে।
         public void Refund(decimal amount)
         {
-            Console.WriteLine($"Credit Card Refunded: {amount}");
+            throw new NotSupportedException("Gift Card cannot be refunded!");
         }
     }
 
-    // ৩. গিফট কার্ড পেমেন্ট (এটি প্রসেস হতে পারে, কিন্তু রিফান্ড করা সম্ভব না!)
-    public class GiftCardPayment : IPaymentMethod
+    // ৪. রিফান্ড সার্ভিস
+    public class RefundService
     {
-        public void ProcessPayment(decimal amount)
+        // ❌ এই মেথডটি যেকোনো IPaymentMethod গ্রহণ করে।
+        // যদি GiftCardPayment পাস করা হয়, তাহলে এটি অ্যাপ্লিকেশন ক্র্যাশ করাবে।
+        public void ExecuteRefund(IPaymentMethod payment, decimal amount)
         {
-            Console.WriteLine($"Gift Card Processed: {amount}");
-        }
-        
-        public void Refund(decimal amount)
-        {
-            // ❌ LSP Violation: ইন্টারফেসের মেথডকে এখানে জোর করে Exception থ্রো করা হচ্ছে।
-            // কারণ গিফট কার্ডের টাকা রিফান্ড করা যায় না।
-            throw new NotSupportedException("Refund is not supported for Gift Cards.");
+            payment.Refund(amount);
         }
     }
 
     /// <summary>
-    /// VIOLATION OF LSP:
-    /// RefundProcessor আশা করছে যে সব IPaymentMethod-ই রিফান্ড করতে পারবে।
-    /// কিন্তু GiftCardPayment পাস করলে সিস্টেম ক্র্যাশ করবে! 
-    /// ইমপ্লিমেন্টিং ক্লাস (GiftCardPayment) তার ইন্টারফেসের (IPaymentMethod) জায়গা ঠিকমতো নিতে পারছে না।
+    /// Usage / Example:
+    /// লুপ ব্যবহার না করে সরাসরি মেথড কল করে দেখানো হলো।
     /// </summary>
-    public class RefundProcessor
+    public class Program
     {
-        public void ProcessRefunds(IPaymentMethod[] payments, decimal amount)
+        public void Run()
         {
-            foreach (var payment in payments)
-            {
-                // যখনই লুপের মধ্যে GiftCardPayment আসবে, তখনই অ্যাপ্লিকেশন ক্র্যাশ করবে!
-                payment.Refund(amount);
-            }
+            RefundService refundService = new RefundService();
+
+            IPaymentMethod card = new CreditCardPayment();
+            refundService.ExecuteRefund(card, 100); // ✅ ঠিকঠাক কাজ করবে
+
+            // ❌ LSP Violation: GiftCardPayment পাস করলেই অ্যাপ্লিকেশন ক্র্যাশ করবে!
+            // কারণ GiftCardPayment তার ইন্টারফেসের (IPaymentMethod) জায়গা নিতে পারেনি।
+            IPaymentMethod giftCard = new GiftCardPayment();
+            refundService.ExecuteRefund(giftCard, 100); // 💥 Crash! NotSupportedException
         }
     }
 }
