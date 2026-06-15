@@ -6,18 +6,18 @@ In other words, every module, class, or function in a program should have respon
 
 ---
 
-## 🛑 The Violation
+## 🛑 The Violation (English)
 
 Take a look at the code in [Violation.cs](file:///Users/bedata/Desktop/Learning/SOLID/01-single-responsibility-principle/Violation.cs).
 
 In this example, the class `OrderProcessor` has **three reasons to change**:
-1. **Tax Calculation & Pricing Logic**: If the tax calculation formula change (e.g., adding dynamic state taxes or discounts), we have to modify `OrderProcessor`.
-2. **Persistence Logic**: Currently, the order is saved as a JSON file using `System.IO`. If we decide to use a PostgreSQL database with Entity Framework Core, we have to modify `OrderProcessor`.
-3. **Notification Logic**: Currently, it sends confirmation emails using a direct `SmtpClient`. If we switch to a transactional email API provider (like SendGrid or AWS SES) or want to change the email body template, we have to modify `OrderProcessor`.
+1. **Tax Calculation & Pricing Logic**: If the tax calculation formula changes (e.g., adding dynamic state taxes or discounts), we have to modify `OrderProcessor`.
+2. **Persistence Logic**: Currently, the order is saved as a JSON file using `System.IO`. If we decide to use a database (e.g., SQL Server or MongoDB), we have to modify `OrderProcessor`.
+3. **Notification Logic**: Currently, it sends confirmation emails using a direct `SmtpClient`. If we switch to a transactional email API provider (like SendGrid or AWS SES) or want to change the email template, we have to modify `OrderProcessor`.
 
 ---
 
-## 🟢 The Solution
+## 🟢 The Solution (English)
 
 Take a look at the code in [Solution.cs](file:///Users/bedata/Desktop/Learning/SOLID/01-single-responsibility-principle/Solution.cs).
 
@@ -31,8 +31,39 @@ Now, `OrderProcessor` has **only one reason to change**: if the high-level workf
 
 ---
 
-## 💡 Real-World Benefits
+## 🇧🇩 সহজ বাংলায় ব্যাখ্যা (Single Responsibility Principle)
 
-* **Easier Testing**: You can now unit test `OrderProcessor` by mocking `IOrderRepository` and `INotificationService` without writing files to disk or sending real emails.
-* **Maintainability**: If the database schema changes, you only modify `JsonFileOrderRepository` or swap it out. The payment flow and email sending logic remain completely untouched and safe from accidental regressions.
-* **High Reusability**: You can reuse `SmtpNotificationService` for other flows (like password resets or shipping updates) without copying code.
+সহজ বাস্তব জীবনের উদাহরণ দিয়ে নিচে বুঝিয়ে দেওয়া হলো:
+
+### ১. বাস্তব জীবনের উদাহরণ (Real-life Analogy)
+
+মনে করুন, আপনার একটা রেস্টুরেন্ট আছে। সেখানে আপনি একজন মাত্র কর্মচারী রেখেছেন—তার নাম **করিম**। 
+
+করিমের কাজ হলো:
+1. কাস্টমারের কাছ থেকে **অর্ডার নেওয়া**।
+2. কিচেনে গিয়ে **রান্না করা**।
+3. কাস্টমারের টেবিল **পরিষ্কার করা**।
+4. দিন শেষে দোকানের **হিসাব-নিকাশ মেলানো**।
+
+**সমস্যা:**
+যদি অনেক কাস্টমার একসঙ্গে চলে আসে, করিম একা সবকিছু সামলাতে গিয়ে হিমশিম খাবে। রান্নার রেসিপি পরিবর্তন হলে করিমকে নতুন করে রান্না শিখতে হবে, তখন টেবিল পরিষ্কার বা হিসাব বন্ধ হয়ে যাবে। যেকোনো একটি কাজের পরিবর্তনের জন্য করিমের ওপর চাপ পড়বে।
+
+**সমাধান (SRP):**
+আপনি করিমের লোড কমিয়ে চারজন আলাদা লোক নিয়োগ করলেন:
+1. **শেফ (Chef):** কাজ শুধু রান্না করা।
+2. **ওয়েটার (Waiter):** কাজ অর্ডার নেওয়া ও খাবার পরিবেশন করা।
+3. **ক্লিনার (Cleaner):** কাজ টেবিল পরিষ্কার করা।
+4. **ক্যাশিয়ার (Cashier):** কাজ হিসাব-নিকাশ করা।
+
+এখানে প্রত্যেকে **একটি মাত্র কাজের জন্য দায়ী (Single Responsibility)**। যদি রান্নার রেসিপি পরিবর্তন হয়, ক্যাশিয়ারের এতে কিছুই যায় আসে না। তার কাজ সে করতেই থাকবে।
+
+### ২. কোডের সাথে মিল
+
+[Violation.cs](file:///Users/bedata/Desktop/Learning/SOLID/01-single-responsibility-principle/Violation.cs)-এ `OrderProcessor` ক্লাসটি হলো ওই একা কাজ করা **করিম**-এর মতো। সে একাই ট্যাক্স হিসাব করে, ফাইলে ডাটা সেভ করে এবং ইমেইল পাঠায়। এর ফলে যেকোনো একটি পরিবর্তন পুরো ফাইলটিকে বারবার এডিট করতে বাধ্য করে।
+
+[Solution.cs](file:///Users/bedata/Desktop/Learning/SOLID/01-single-responsibility-principle/Solution.cs)-এ আমরা কাজের দায়িত্বগুলো ভাগ করে দিয়েছি:
+1. ট্যাক্স হিসাবের দায়িত্ব দিয়েছি `StandardTaxCalculator` কে।
+2. ডাটা সেভ করার দায়িত্ব দিয়েছি `JsonFileOrderRepository` কে।
+3. ইমেইল পাঠানোর দায়িত্ব দিয়েছি `SmtpNotificationService` কে।
+
+`OrderProcessor` এখন শুধু একজন ম্যানেজারের মতো কাজগুলো করিয়ে নেয়। ফলে ভবিষ্যৎ পরিবর্তন অনেক সহজ ও বাগ-মুক্ত (Bug-free) হয়।
