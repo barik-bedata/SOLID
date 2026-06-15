@@ -2,16 +2,19 @@ using System;
 
 namespace SOLID.OCP.Solution
 {
-    // --- 1. Define the abstraction (Open for Extension) ---
+    // ১. ফি (Fee) হিসাব করার দায়িত্বটাও ইন্টারফেসকে দিয়ে দেওয়া হলো
     public interface IPaymentMethod
     {
-        void Process(decimal amount);
+        decimal CalculateFee(decimal amount);
+        void ProcessPayment(decimal amount);
     }
 
-    // --- 2. Concrete implementations ---
+    // ২. এখন প্রতিটি ক্লাস নিজের ফি নিজেই হিসাব করতে পারে
     public class CreditCardPayment : IPaymentMethod
     {
-        public void Process(decimal amount)
+        public decimal CalculateFee(decimal amount) => amount * 0.02m; // ২% ফি
+
+        public void ProcessPayment(decimal amount)
         {
             Console.WriteLine($"Processing credit card payment of {amount}");
         }
@@ -19,32 +22,41 @@ namespace SOLID.OCP.Solution
 
     public class PayPalPayment : IPaymentMethod
     {
-        public void Process(decimal amount)
+        public decimal CalculateFee(decimal amount) => amount * 0.05m; // ৫% ফি
+
+        public void ProcessPayment(decimal amount)
         {
             Console.WriteLine($"Processing PayPal payment of {amount}");
         }
     }
 
-    // --- 3. Adding a new feature (Bkash) without modifying existing code ---
+    // ৩. নতুন বিকাশ যোগ করলে শুধু ক্লাস বানাতে হবে, আর কিচ্ছু করতে হবে না!
     public class BkashPayment : IPaymentMethod
     {
-        public void Process(decimal amount)
+        public decimal CalculateFee(decimal amount) => amount * 0.01m; // ১% ফি
+
+        public void ProcessPayment(decimal amount)
         {
             Console.WriteLine($"Processing Bkash payment of {amount}");
         }
     }
 
-    // --- 4. The Orchestrator (Closed for Modification) ---
     /// <summary>
     /// SOLUTION OF OCP:
-    /// This class is open for extension (we can pass any new IPaymentMethod implementation)
-    /// but closed for modification (we don't need to change this class to support new payment methods).
+    /// 
+    /// এখন PaymentProcessor ক্লাসে কোনো if/else নেই। 
+    /// নতুন যত পেমেন্ট মেথডই আসুক না কেন, এই ক্লাসের একটি লাইনও পরিবর্তন করতে হবে না।
+    /// (Open for Extension, Closed for Modification)
     /// </summary>
     public class PaymentProcessor
     {
-        public void ProcessPayment(IPaymentMethod paymentMethod, decimal amount)
+        public void Process(IPaymentMethod payment, decimal amount)
         {
-            paymentMethod.Process(amount);
+            // পলিমরফিজম ব্যবহার করে ফি হিসাব করা হচ্ছে
+            decimal fee = payment.CalculateFee(amount);
+            decimal totalAmount = amount + fee;
+
+            payment.ProcessPayment(totalAmount);
         }
     }
 }

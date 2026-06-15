@@ -8,99 +8,102 @@ Software entities (classes, modules, functions, etc.) should be **open for exten
 
 ## 🛑 The Violation — [Violation.cs](file:///Users/bedata/Desktop/Learning/SOLID/02-open-closed-principle/Violation.cs)
 
-এখানে প্রতিটি পেমেন্ট ক্লাসের নিজস্ব আলাদা মেথড নাম আছে। `PaymentProcessor` ক্লাসকে `is` কিওয়ার্ড দিয়ে টাইপ চেক করে বুঝতে হচ্ছে কোন ক্লাস এসেছে:
+এখানে একটি `IPaymentMethod` ইন্টারফেস আছে, এবং সেটি ঠিকমতো ইমপ্লিমেন্টও করা হয়েছে। কিন্তু সমস্যা হলো **"Processing Fee"** বা প্রসেসিং ফি হিসাব করার ক্ষেত্রে। 
+
+`PaymentProcessor` ক্লাস ফি হিসাব করার জন্য ইন্টারফেসের সাহায্য না নিয়ে, `is` কিওয়ার্ড দিয়ে হার্ডকোড লজিক লিখেছে:
 
 ```csharp
-// প্রতিটি ক্লাসের আলাদা আলাদা মেথড নাম
-public class CreditCardPayment
+// ১. একটি পারফেক্ট ইন্টারফেস আছে
+public interface IPaymentMethod
 {
-    public void PayWithCard(decimal amount)
-    {
-        Console.WriteLine($"Processing credit card payment of {amount}");
-    }
+    void ProcessPayment(decimal amount);
 }
 
-public class PayPalPayment
+// ২. ক্লাসগুলো ইন্টারফেস ইমপ্লিমেন্ট করেছে
+public class CreditCardPayment : IPaymentMethod
 {
-    public void PayWithPayPal(decimal amount)
-    {
-        Console.WriteLine($"Processing PayPal payment of {amount}");
-    }
+    public void ProcessPayment(decimal amount) { Console.WriteLine($"Processing..."); }
 }
 
-// PaymentProcessor কে টাইপ চেক করে প্রতিটি ক্লাসের মেথড আলাদাভাবে কল করতে হচ্ছে
+public class PayPalPayment : IPaymentMethod
+{
+    public void ProcessPayment(decimal amount) { Console.WriteLine($"Processing..."); }
+}
+
+// ৩. কিন্তু PaymentProcessor ক্লাসে ফি বের করার জন্য if-else ব্যবহার করা হচ্ছে
 public class PaymentProcessor
 {
-    public void ProcessPayment(object payment, decimal amount)
+    public void Process(IPaymentMethod payment, decimal amount)
     {
-        if (payment is CreditCardPayment cardPayment)
+        decimal fee = 0;
+
+        // ❌ OCP Violation: নতুন পেমেন্ট মেথড আসলে এখানে কোড এডিট করতে হবে!
+        if (payment is CreditCardPayment)
         {
-            cardPayment.PayWithCard(amount);
+            fee = amount * 0.02m; // ২% ফি
         }
-        else if (payment is PayPalPayment payPalPayment)
+        else if (payment is PayPalPayment)
         {
-            payPalPayment.PayWithPayPal(amount);
+            fee = amount * 0.05m; // ৫% ফি
         }
-        // ভবিষ্যতে Bkash যোগ করতে গেলে এখানে আরেকটি else if লিখতে হবে!
-        // else if (payment is BkashPayment bkash) { bkash.PayWithBkash(amount); }
+
+        // পলিমরফিজম ঠিকই কাজ করছে, কিন্তু ফি এর লজিকটি OCP লঙ্ঘন করেছে
+        payment.ProcessPayment(amount + fee);
     }
 }
 ```
 
-**সমস্যা কোথায়?** নতুন পেমেন্ট মেথড (যেমন `BkashPayment`) যোগ করতে গেলে প্রতিবার `PaymentProcessor` ক্লাসের কোড এডিট করতে হবে। এটি OCP লঙ্ঘন, কারণ ক্লাসটি modification-এর জন্য বন্ধ (closed) নয়।
+**সমস্যা কোথায়?** ইন্টারফেস থাকার পরও নতুন পেমেন্ট মেথড (যেমন `BkashPayment`) যোগ করতে গেলে বাধ্য হয়ে `PaymentProcessor` ক্লাসের `if/else` ব্লক এডিট করে নতুন ফি-এর লজিক যোগ করতে হবে। এটি OCP লঙ্ঘন, কারণ ক্লাসটি modification-এর জন্য বন্ধ (closed) নয়।
 
 ---
 
 ## 🟢 The Solution — [Solution.cs](file:///Users/bedata/Desktop/Learning/SOLID/02-open-closed-principle/Solution.cs)
 
-আমরা একটি কমন `IPaymentMethod` ইন্টারফেস তৈরি করি, যেখানে সবার একটাই মেথড: `Process(amount)`। এর ফলে `PaymentProcessor` কে কোন ক্লাস এসেছে তা জানতে হয় না:
+আমরা `IPaymentMethod` ইন্টারফেসে ফি হিসাব করার দায়িত্বটিও দিয়ে দেব (`CalculateFee`)। এর ফলে `PaymentProcessor` কে কোন ক্লাস এসেছে তা জানতে হবে না:
 
 ```csharp
-// সবার জন্য একটি কমন ইন্টারফেস
+// ১. ফি (Fee) হিসাব করার দায়িত্বটাও ইন্টারফেসকে দিয়ে দেওয়া হলো
 public interface IPaymentMethod
 {
-    void Process(decimal amount);
+    decimal CalculateFee(decimal amount);
+    void ProcessPayment(decimal amount);
 }
 
-// প্রতিটি পেমেন্ট ক্লাস ইন্টারফেস ইমপ্লিমেন্ট করে
+// ২. এখন প্রতিটি ক্লাস নিজের ফি নিজেই হিসাব করতে পারে
 public class CreditCardPayment : IPaymentMethod
 {
-    public void Process(decimal amount)
-    {
-        Console.WriteLine($"Processing credit card payment of {amount}");
-    }
+    public decimal CalculateFee(decimal amount) => amount * 0.02m;
+    public void ProcessPayment(decimal amount) { Console.WriteLine($"Processing..."); }
 }
 
 public class PayPalPayment : IPaymentMethod
 {
-    public void Process(decimal amount)
-    {
-        Console.WriteLine($"Processing PayPal payment of {amount}");
-    }
+    public decimal CalculateFee(decimal amount) => amount * 0.05m;
+    public void ProcessPayment(decimal amount) { Console.WriteLine($"Processing..."); }
 }
 
-// নতুন Bkash যোগ করতে শুধু নতুন ক্লাস বানালেই হলো!
-// PaymentProcessor এর কোড স্পর্শ করতে হলো না!
+// নতুন Bkash যোগ করলে শুধু ক্লাস বানাতে হবে, আর কিচ্ছু করতে হবে না!
 public class BkashPayment : IPaymentMethod
 {
-    public void Process(decimal amount)
-    {
-        Console.WriteLine($"Processing Bkash payment of {amount}");
-    }
+    public decimal CalculateFee(decimal amount) => amount * 0.01m;
+    public void ProcessPayment(decimal amount) { Console.WriteLine($"Processing Bkash..."); }
 }
 
-// PaymentProcessor এখন শুধু ইন্টারফেস দিয়ে কাজ করে
-// কোন ক্লাস এসেছে সেটা জানার দরকার নেই
+// ৩. PaymentProcessor এখন পুরোপুরি ইন্টারফেসের উপর নির্ভরশীল
 public class PaymentProcessor
 {
-    public void ProcessPayment(IPaymentMethod paymentMethod, decimal amount)
+    public void Process(IPaymentMethod payment, decimal amount)
     {
-        paymentMethod.Process(amount); // ব্যস! কোনো if/else নেই!
+        // পলিমরফিজম ব্যবহার করে ফি হিসাব করা হচ্ছে
+        decimal fee = payment.CalculateFee(amount);
+        
+        payment.ProcessPayment(amount + fee); // ব্যস! কোনো if/else নেই!
     }
 }
 ```
 
-**লাভ কী হলো?** নতুন `BkashPayment` যোগ করতে শুধু একটি নতুন ক্লাস তৈরি করলেই হলো। `PaymentProcessor` এর এক লাইনও এডিট করতে হলো না। এটিই হলো OCP — **Open for Extension, Closed for Modification**।
+**লাভ কী হলো?** নতুন `BkashPayment` যোগ করতে শুধু একটি নতুন ক্লাস তৈরি করলেই হলো। `PaymentProcessor` ক্লাসে কোনো `if/else` নেই, তাই এর একটি লাইনও এডিট করতে হলো না। এটিই হলো OCP — **Open for Extension, Closed for Modification**।
+
 
 ---
 
