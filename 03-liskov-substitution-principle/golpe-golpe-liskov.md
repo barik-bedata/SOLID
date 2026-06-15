@@ -126,3 +126,70 @@ billing.PrintFinalBill(new NewCustomerDiscount(), 1000);
 Parent (`IDiscountCalculator`) চুক্তি করেছিল সে ডিসকাউন্ট দেবে। কিন্তু Child (`NewCustomerDiscount`) এসে সেই চুক্তি ভেঙে নেগেটিভ ভ্যালু রিটার্ন করে পুরো ব্যবসার হিসাব পাল্টে দিয়েছে।
 
 একেই বলে **"Major Behavior Change"**। Child ক্লাস কখনোই Parent ক্লাসের চুক্তির (Contract) বাইরের কোনো আচরণ করতে পারবে না। যদি করে, আর তার কারণে যদি সিস্টেমে লজিক্যাল ভুল হয়, তবে সেটিও মারাত্মক **LSP Violation**!
+
+---
+
+## 🏦 উদাহরণ ২: সাইলেন্ট চার্জ বা লুকানো ফি (Hidden Fees)
+
+আর্থিক লেনদেনের আরও একটি খুব কমন রিয়েল-ওয়ার্ল্ড উদাহরণ দেখা যাক। 
+
+ধরুন, আপনার একটি ব্যাংক অ্যাকাউন্ট ম্যানেজমেন্ট সিস্টেম আছে। সেখানে একটি বেস ইন্টারফেস বা চুক্তি আছে `IBankAccount`:
+```csharp
+public interface IBankAccount
+{
+    // Parent এর চুক্তি (Contract): "আমি ব্যালেন্স থেকে ঠিক ততটুকুই কাটব, যতটুকু উইথড্র (Withdraw) করা হবে।"
+    // Postcondition: New Balance = Old Balance - amount
+    void Withdraw(decimal amount);
+}
+```
+
+সাধারণ সেভিংস অ্যাকাউন্টের ক্ষেত্রে এটি একদম ঠিকঠাক কাজ করে:
+```csharp
+public class SavingsAccount : IBankAccount
+{
+    public decimal Balance { get; set; } = 5000;
+
+    public void Withdraw(decimal amount)
+    {
+        Balance -= amount; // চুক্তি অনুযায়ী ঠিক ততটুকুই কাটল
+    }
+}
+```
+
+কিন্তু ব্যাংকের একজন ডেভেলপার **"Credit Card Account"** নামে একটি নতুন ক্লাস বানাল এবং সেটিকে `IBankAccount` এর Child হিসেবে ডিক্লেয়ার করল। কিন্তু ক্রেডিট কার্ডের নিয়ম অনুযায়ী, টাকা তুললে (Cash Advance) হিডেন চার্জ বা ফি কাটে!
+```csharp
+public class CreditCardAccount : IBankAccount
+{
+    public decimal Balance { get; set; } = 5000;
+
+    public void Withdraw(decimal amount)
+    {
+        // ❌ LSP Violation: Child চুপিচুপি চুক্তির বাইরে গিয়ে এক্সট্রা ফি কাটছে!
+        decimal hiddenFee = 50; 
+        Balance -= (amount + hiddenFee); 
+    }
+}
+```
+
+### 💥 সমস্যা কোথায়?
+
+আপনার একটি `AtmMachine` ক্লাস আছে, যে শুধু Parent (`IBankAccount`) কে চেনে এবং ইউজারকে স্ক্রিনে মেসেজ দেখায়।
+```csharp
+public class AtmMachine
+{
+    public void ProcessWithdrawal(IBankAccount account, decimal amount)
+    {
+        account.Withdraw(amount);
+        Console.WriteLine($"Successful! {amount} taka has been deducted from your account.");
+    }
+}
+```
+
+**কী মারাত্মক ভুল হলো?**
+ইউজার এটিএম থেকে `1000` টাকা তুলল। `AtmMachine` স্ক্রিনে দেখাল: *"Successful! 1000 taka has been deducted from your account."*
+
+কিন্তু যেহেতু এটি একটি `CreditCardAccount` (Child) ছিল, সে ব্যাকগ্রাউন্ডে ইউজারের অ্যাকাউন্ট থেকে `1000 + 50 = 1050` টাকা কেটে নিয়েছে! ইউজার জানতেই পারল না যে তার ৫০ টাকা বেশি কাটা গেছে, কারণ `AtmMachine` (যে Parent-এর চুক্তির ওপর বিশ্বাস করেছিল) জানতই না যে এই Child এক্সট্রা টাকা কাটতে পারে।
+
+এখানেও **কোনো Exception থ্রো হয়নি, কোড ক্র্যাশ করেনি।** কিন্তু Parent (`IBankAccount`) যে কথা দিয়েছিল (যতটুকু তুলবে ততটুকুই কাটবে), Child (`CreditCardAccount`) এসে সেই চুক্তির বাইরে কাজ করে ইউজারের ব্যালেন্সের হিসাব পাল্টে দিয়েছে। 
+
+**মূল কথা:** Parent-এর যে কাজ করার কথা (Behavior), Child-কে হুবহু সেই আচরণই ধরে রাখতে হবে। Child কখনোই Parent-এর চুক্তির বাইরে গিয়ে কোনো হিডেন বা সারপ্রাইজ কাজ করতে পারবে না। এটাই হলো LSP-এর "Behavioral" বা আচরণগত নিয়ম!
