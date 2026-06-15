@@ -67,3 +67,25 @@ Now, `OrderProcessor` has **only one reason to change**: if the high-level workf
 3. ইমেইল পাঠানোর দায়িত্ব দিয়েছি `SmtpNotificationService` কে।
 
 `OrderProcessor` এখন শুধু একজন ম্যানেজারের মতো কাজগুলো করিয়ে নেয়। ফলে ভবিষ্যৎ পরিবর্তন অনেক সহজ ও বাগ-মুক্ত (Bug-free) হয়।
+
+---
+
+## 🔗 SRP এবং Cohesion-এর সম্পর্ক (Low vs High Cohesion)
+
+সফটওয়্যার ইঞ্জিনিয়ারিংয়ের একটি অত্যন্ত জনপ্রিয় এবং গোল্ডেন রুল (Golden Rule) আছে:
+> **"High Cohesion, Loose Coupling"** (কোডকে সবসময় High Cohesion এবং Loose Coupling হতে হবে)। 
+
+Loose Coupling আমরা অর্জন করি **DIP (Dependency Inversion Principle)** দিয়ে। আর **High Cohesion** অর্জন করি এই **SRP (Single Responsibility Principle)** দিয়ে! 
+
+### ১. Low Cohesion (এলোমেলো জগাখিচুড়ি)
+Cohesion মানে হলো "মিল" বা "একতা"। একটি ক্লাসের ভেতরের মেথডগুলোর মধ্যে যদি কোনো মিল না থাকে, তখন তাকে বলে **Low Cohesion**। 
+যেমন আমাদের `Violation.cs`-এর `OrderProcessor` ক্লাসটি ট্যাক্স হিসাব করে, ফাইলে সেভ করে এবং ইমেইল পাঠায়। এই তিনটি কাজের মধ্যে কোনো মিল বা একতা নেই। ট্যাক্স হিসাবের সাথে ইমেইল পাঠানোর কোনো সম্পর্ক নেই। 
+অর্থাৎ এখানে Cohesion খুবই **Low**। আর এটিই হলো **SRP Violation**!
+
+### ২. High Cohesion (নিখুঁত একতা)
+SRP বলে, একটি ক্লাসের একটাই দায়িত্ব থাকবে। 
+যখন আপনি জগাখিচুড়ি ক্লাসটি ভেঙে আলাদা ক্লাস বানালেন (যেমন `SmtpNotificationService`), তখন ওই ক্লাসের ভেতরে যা যা মেথড বা প্রপার্টি থাকবে, তার সবকিছুই শুধুমাত্র "নোটিফিকেশন বা ইমেইল" রিলেটেড হবে। অর্থাৎ মেথডগুলোর মধ্যে স্ট্রং মিল বা একতা আছে। একেই বলে **High Cohesion**! 
+
+**সারসংক্ষেপ:**
+* **SRP মানলে:** কোডের **Cohesion বাড়ে (High Cohesion)**। ক্লাসগুলো ফোকাসড এবং গোছানো হয়।
+* **DIP মানলে:** কোডের **Coupling কমে (Loose Coupling)**। ক্লাসগুলো স্বাধীন হয়।
