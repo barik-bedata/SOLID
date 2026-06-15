@@ -120,3 +120,24 @@ GiftCardPayment giftCard = new GiftCardPayment();
 
 **লাভ কী হলো?** 
 এখন `RefundService` শুধুমাত্র `IRefundable` ইন্টারফেস গ্রহণ করে। তাই `GiftCardPayment` এখানে ভুল করেও পাস করা যাবে না (কম্পাইল-টাইম এরর)। ফলে লুপ হোক বা সরাসরি কল, সিস্টেম ক্র্যাশ করার কোনো সুযোগ নেই। ইমপ্লিমেন্টিং ক্লাসগুলো এখন তাদের নিজস্ব আচরণ অনুযায়ী সঠিক ইন্টারফেস ব্যবহার করছে।
+
+---
+
+## 💡 প্রশ্ন ও উত্তর (FAQ)
+
+### "Parent should be replaceable by child" — এর মানে কী?
+
+খুব সহজ কথায় বললে:
+* **Parent (Parent Type):** ইন্টারফেস বা বেস ক্লাস (যেমন `IPaymentMethod`) হলো একটি **"ফাঁকা বাক্স"** বা **"লেবেল"**।
+* **Child (Child Type):** যে ক্লাসটি ঐ ইন্টারফেস ইমপ্লিমেন্ট করে (যেমন `CreditCardPayment` বা `GiftCardPayment`), সেটি হলো আসল কাজ করার **"মেশিন"**।
+
+যখন আমরা লিখি:
+```csharp
+IPaymentMethod pay = new CreditCardPayment();
+```
+এর মানে হলো: **"আমাকে IPaymentMethod নামের একটি ফাঁকা বাক্স দাও, আর সেই বাক্সের ভেতরে আসল CreditCardPayment মেশিনটি ঢুকিয়ে দাও।"**
+
+এখানে **Parent (`IPaymentMethod`) এর জায়গাটি দখল করেছে বা রিপ্লেস (Replace) করেছে Child (`CreditCardPayment`)।** 
+
+**LSP এর মূল নিয়ম হলো:**
+এই `IPaymentMethod` বাক্সে আপনি যেই Child মেশিনকেই রাখেন না কেন, বাক্সের বাটন (যেমন `ProcessPayment`) চাপলে তা ঠিকঠাক কাজ করতে হবে। কোনোভাবেই যেন সিস্টেম ক্র্যাশ না করে। যদি `GiftCardPayment` কে ঐ বাক্সে রাখলে সিস্টেম ক্র্যাশ করে (যেমনটা আমাদের Violation ফাইলে `Refund` কল করলে হয়েছিল), তার মানে ওই Child তার Parent-এর জায়গা নেওয়ার যোগ্য নয়! এটাই হলো LSP Violation।
