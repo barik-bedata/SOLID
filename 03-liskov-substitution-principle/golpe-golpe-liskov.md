@@ -46,3 +46,64 @@ LSP বলে:
 সমাধান হলো: যে রিফান্ড করতে পারে না, তাকে এমন একটি বক্সে (`IRefundable`) রাখাই যাবে না। তাহলে কেউ ভুল করেও তার রিফান্ড বাটনে চাপ দেবে না, আর সফটওয়্যারটিও কখনো ক্র্যাশ করবে না। 
 
 এটাই হলো **Liskov Substitution Principle**-এর আসল সৌন্দর্য!
+
+---
+
+## 🎭 Major Behavior Change (আরেক ধরনের ভায়োলেশন)
+
+আমরা এতক্ষণ দেখলাম Exception থ্রো করে কীভাবে কোড ক্র্যাশ করে। কিন্তু LSP-তে আরেক ধরনের মারাত্মক ভায়োলেশন আছে, যেখানে **কোড ক্র্যাশ করে না, কিন্তু কোডের আচরণ (Behavior) পুরোপুরি বদলে যায়!** 
+
+ধরুন, আপনার কাছে একটি `Rectangle` (আয়তক্ষেত্র) ক্লাস আছে:
+```csharp
+public class Rectangle
+{
+    public virtual int Width { get; set; }
+    public virtual int Height { get; set; }
+    public int GetArea() => Width * Height;
+}
+```
+**Parent এর চুক্তি (Contract):** "আমার দৈর্ঘ্য (Height) বদলালে প্রস্থ (Width) বদলাবে না। দুটো আলাদা।"
+
+এখন আপনি ভাবলেন, জ্যামিতির নিয়ম অনুযায়ী **Square (বর্গক্ষেত্র)** তো এক ধরনের আয়তক্ষেত্র! তাই আপনি `Square` কে `Rectangle` এর Child বানালেন:
+```csharp
+public class Square : Rectangle
+{
+    // বর্গক্ষেত্রের নিয়ম: দৈর্ঘ্য বা প্রস্থ যেটাই বদলাক, দুটোই সমান হয়ে যাবে!
+    public override int Width 
+    { 
+        set { base.Width = value; base.Height = value; } 
+    }
+    public override int Height 
+    { 
+        set { base.Height = value; base.Width = value; } 
+    }
+}
+```
+
+### 💥 সমস্যাটা কোথায় হলো?
+
+এখন ধরুন, আপনার সিস্টেমে এমন একটি কোড আছে, যে শুধু Parent (`Rectangle`)-কে চেনে:
+```csharp
+public void CheckArea(Rectangle rect)
+{
+    rect.Width = 5;
+    rect.Height = 4;
+    
+    // Parent এর নিয়ম অনুযায়ী Area হওয়া উচিত 5 * 4 = 20
+    Console.WriteLine(rect.GetArea()); 
+}
+```
+আপনি যদি এখানে আসল `Rectangle` দেন, উত্তর আসবে `20`।
+কিন্তু আপনি যদি ওই `Rectangle` বাক্সের ভেতর Child অর্থাৎ `Square`-কে ঢুকিয়ে দেন:
+```csharp
+Rectangle myRect = new Square();
+CheckArea(myRect); // উত্তর আসবে 16! 
+```
+**কী হলো এখানে?** 
+1. `Width = 5` সেট করার সময় `Square` তার উচ্চতাকেও `5` করে দিয়েছে।
+2. এরপর `Height = 4` সেট করার সময় সে তার প্রস্থকেও `4` করে দিয়েছে।
+3. ফলে Area হয়ে গেছে `4 * 4 = 16`!
+
+**LSP Violation:** এখানে কোনো Exception থ্রো হয়নি, সিস্টেম ক্র্যাশও করেনি। কিন্তু **আউটপুট পুরোপুরি ভুল এসেছে!** Parent (`Rectangle`) কথা দিয়েছিল যে Width পাল্টালে Height পাল্টাবে না। কিন্তু Child (`Square`) এসে চুপিচুপি সেই নিয়ম ভেঙে দিয়েছে। 
+
+একেই বলে **"Major Behavior Change"**। Child ক্লাস কখনোই Parent ক্লাসের স্বাভাবিক আচরণ বা রুলস (Behavior/Rules) পরিবর্তন করতে পারবে না! যদি করে, তবে সেটিও LSP Violation।
