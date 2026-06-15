@@ -2,38 +2,38 @@ using System;
 
 namespace SOLID.LSP.Violation
 {
-    // ১. বেস ক্লাস (অথবা ইন্টারফেস) যেখানে রিফান্ড করার মেথড আছে
-    public abstract class PaymentMethod
+    // ১. বেস ইন্টারফেস যেখানে পেমেন্ট এবং রিফান্ড করার মেথড আছে
+    public interface IPaymentMethod
     {
-        public abstract void ProcessPayment(decimal amount);
-        public abstract void Refund(decimal amount);
+        void ProcessPayment(decimal amount);
+        void Refund(decimal amount);
     }
 
     // ২. ক্রেডিট কার্ড পেমেন্ট (এটি প্রসেস এবং রিফান্ড দুটোই করতে পারে)
-    public class CreditCardPayment : PaymentMethod
+    public class CreditCardPayment : IPaymentMethod
     {
-        public override void ProcessPayment(decimal amount)
+        public void ProcessPayment(decimal amount)
         {
             Console.WriteLine($"Credit Card Processed: {amount}");
         }
 
-        public override void Refund(decimal amount)
+        public void Refund(decimal amount)
         {
             Console.WriteLine($"Credit Card Refunded: {amount}");
         }
     }
 
     // ৩. গিফট কার্ড পেমেন্ট (এটি প্রসেস হতে পারে, কিন্তু রিফান্ড করা সম্ভব না!)
-    public class GiftCardPayment : PaymentMethod
+    public class GiftCardPayment : IPaymentMethod
     {
-        public override void ProcessPayment(decimal amount)
+        public void ProcessPayment(decimal amount)
         {
             Console.WriteLine($"Gift Card Processed: {amount}");
         }
         
-        public override void Refund(decimal amount)
+        public void Refund(decimal amount)
         {
-            // ❌ LSP Violation: বেস ক্লাসের মেথডকে এখানে জোর করে Exception থ্রো করা হচ্ছে।
+            // ❌ LSP Violation: ইন্টারফেসের মেথডকে এখানে জোর করে Exception থ্রো করা হচ্ছে।
             // কারণ গিফট কার্ডের টাকা রিফান্ড করা যায় না।
             throw new NotSupportedException("Refund is not supported for Gift Cards.");
         }
@@ -41,13 +41,13 @@ namespace SOLID.LSP.Violation
 
     /// <summary>
     /// VIOLATION OF LSP:
-    /// RefundProcessor আশা করছে যে সব PaymentMethod-ই রিফান্ড করতে পারবে।
+    /// RefundProcessor আশা করছে যে সব IPaymentMethod-ই রিফান্ড করতে পারবে।
     /// কিন্তু GiftCardPayment পাস করলে সিস্টেম ক্র্যাশ করবে! 
-    /// সাব-ক্লাস (GiftCardPayment) তার বেস-ক্লাসের (PaymentMethod) জায়গা ঠিকমতো নিতে পারছে না।
+    /// ইমপ্লিমেন্টিং ক্লাস (GiftCardPayment) তার ইন্টারফেসের (IPaymentMethod) জায়গা ঠিকমতো নিতে পারছে না।
     /// </summary>
     public class RefundProcessor
     {
-        public void ProcessRefunds(PaymentMethod[] payments, decimal amount)
+        public void ProcessRefunds(IPaymentMethod[] payments, decimal amount)
         {
             foreach (var payment in payments)
             {

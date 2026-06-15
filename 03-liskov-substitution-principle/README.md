@@ -8,40 +8,40 @@ Objects of a superclass should be replaceable with objects of its subclasses wit
 
 ## 🛑 The Violation — [Violation.cs](file:///Users/bedata/Desktop/Learning/SOLID/03-liskov-substitution-principle/Violation.cs)
 
-ধরুন আমাদের একটি বেস ক্লাস আছে `PaymentMethod`, যার দুটি কাজ আছে: পেমেন্ট প্রসেস করা (`ProcessPayment`) এবং রিফান্ড করা (`Refund`)।
+ধরুন আমাদের একটি বেস ইন্টারফেস আছে `IPaymentMethod`, যার দুটি কাজ আছে: পেমেন্ট প্রসেস করা (`ProcessPayment`) এবং রিফান্ড করা (`Refund`)।
 
 ```csharp
-public abstract class PaymentMethod
+public interface IPaymentMethod
 {
-    public abstract void ProcessPayment(decimal amount);
-    public abstract void Refund(decimal amount);
+    void ProcessPayment(decimal amount);
+    void Refund(decimal amount);
 }
 
 // ১. ক্রেডিট কার্ড রিফান্ড করতে পারে, তাই সমস্যা নেই।
-public class CreditCardPayment : PaymentMethod
+public class CreditCardPayment : IPaymentMethod
 {
-    public override void ProcessPayment(decimal amount) { Console.WriteLine("Card Processed"); }
-    public override void Refund(decimal amount) { Console.WriteLine("Card Refunded"); }
+    public void ProcessPayment(decimal amount) { Console.WriteLine("Card Processed"); }
+    public void Refund(decimal amount) { Console.WriteLine("Card Refunded"); }
 }
 
-// ২. ❌ কিন্তু গিফট কার্ড তো রিফান্ড করা যায় না!
-public class GiftCardPayment : PaymentMethod
+// ২. ❌ কিন্তু গিফট কার্ড তো রিফান্ড করা যায় না!
+public class GiftCardPayment : IPaymentMethod
 {
-    public override void ProcessPayment(decimal amount) { Console.WriteLine("Gift Card Processed"); }
+    public void ProcessPayment(decimal amount) { Console.WriteLine("Gift Card Processed"); }
     
-    // গিফট কার্ড রিফান্ড হয় না, তাই জোর করে Exception থ্রো করা হলো।
-    public override void Refund(decimal amount)
+    // গিফট কার্ড রিফান্ড হয় না, তাই জোর করে Exception থ্রো করা হলো।
+    public void Refund(decimal amount)
     {
         throw new NotSupportedException("Gift Card cannot be refunded!");
     }
 }
 ```
 
-**সমস্যা কোথায় (LSP Violation)?** 
-যখন `RefundProcessor` ক্লাস সব `PaymentMethod` লিস্ট ধরে ধরে `Refund()` কল করবে, তখন `CreditCardPayment` ঠিকঠাক কাজ করবে। কিন্তু যখনই সে `GiftCardPayment` পাবে, তখনই সিস্টেম **Crash** করবে! 
+**সমস্যা কোথায় (LSP Violation)?** 
+যখন `RefundProcessor` ক্লাস সব `IPaymentMethod` লিস্ট ধরে ধরে `Refund()` কল করবে, তখন `CreditCardPayment` ঠিকঠাক কাজ করবে। কিন্তু যখনই সে `GiftCardPayment` পাবে, তখনই সিস্টেম **Crash** করবে! 
 
 ```csharp
-public void ProcessRefunds(PaymentMethod[] payments, decimal amount)
+public void ProcessRefunds(IPaymentMethod[] payments, decimal amount)
 {
     foreach (var payment in payments)
     {
@@ -50,7 +50,7 @@ public void ProcessRefunds(PaymentMethod[] payments, decimal amount)
 }
 ```
 
-অর্থাৎ, চাইল্ড ক্লাস (`GiftCardPayment`) তার প্যারেন্ট ক্লাসের (`PaymentMethod`) সব আচরণ পালন করতে না পারায় প্যারেন্টের জায়গা নিতে ব্যর্থ হয়েছে। এটিই **LSP Violation**।
+অর্থাৎ, ইমপ্লিমেন্টিং ক্লাস (`GiftCardPayment`) তার ইন্টারফেসের (`IPaymentMethod`) সব আচরণ পালন করতে না পারায় ইন্টারফেসের জায়গা নিতে ব্যর্থ হয়েছে। এটিই **LSP Violation**।
 
 ---
 
