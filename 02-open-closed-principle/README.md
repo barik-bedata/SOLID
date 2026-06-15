@@ -9,12 +9,20 @@ This means you should be able to extend a class's behavior without modifying its
 ## 🛑 The Violation
 
 Take a look at [Violation.cs](file:///Users/bedata/Desktop/Learning/SOLID/02-open-closed-principle/Violation.cs).
-Whenever we add a new payment method (e.g. Bkash), we must edit the `PaymentProcessor` class to add an `else if` check. This violates OCP because the class is modified every time a new feature is added.
+
+Instead of using interfaces, we have concrete classes like `CreditCardPayment` and `PayPalPayment`. In `PaymentProcessor`, we receive the payment object as a generic `object` and use type checking (`is` keyword) to process it:
+```csharp
+if (payment is CreditCardPayment cardPayment) { ... }
+else if (payment is PayPalPayment payPalPayment) { ... }
+```
+If we want to add a new payment method (e.g. `BkashPayment`), we must modify the `PaymentProcessor` class to add another `else if` check. This violates OCP because the class is not closed for modification.
 
 ## 🟢 The Solution
 
 Take a look at [Solution.cs](file:///Users/bedata/Desktop/Learning/SOLID/02-open-closed-principle/Solution.cs).
-We use the `IPaymentMethod` interface. Adding `BkashPayment` is done by creating a new class, completely leaving the `PaymentProcessor` code untouched.
+
+We solve this by defining a shared **`IPaymentMethod` interface** with a polymorphic `Process(amount)` method. 
+The `PaymentProcessor` now simply calls `paymentMethod.Process(amount)`. It doesn't know (or care) which concrete class is being used. Adding `BkashPayment` is done by creating a new class implementing `IPaymentMethod`, leaving the `PaymentProcessor` code 100% untouched.
 
 ---
 

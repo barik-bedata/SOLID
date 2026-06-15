@@ -2,39 +2,44 @@ using System;
 
 namespace SOLID.OCP.Violation
 {
-    public enum PaymentType
+    // Concrete payment classes without a shared polymorphic behavior
+    public class CreditCardPayment
     {
-        CreditCard,
-        PayPal
+        public void PayWithCard(decimal amount)
+        {
+            Console.WriteLine($"Processing credit card payment of {amount}");
+        }
     }
 
-    public class PaymentInfo
+    public class PayPalPayment
     {
-        public PaymentType Type { get; set; }
-        public decimal Amount { get; set; }
+        public void PayWithPayPal(decimal amount)
+        {
+            Console.WriteLine($"Processing PayPal payment of {amount}");
+        }
     }
 
     /// <summary>
     /// VIOLATION OF OCP:
-    /// If we want to add a new payment method (e.g. Bkash or Stripe) in the future:
-    /// 1. We must add a new value to the PaymentType enum.
-    /// 2. We must modify the ProcessPayment method in this class to add another 'case' or 'if' block.
-    /// This violates OCP because the class is not closed for modification.
+    /// This processor must check the concrete class type to call the appropriate method.
+    /// If we want to add a new payment method (e.g. BkashPayment) in the future:
+    /// We must modify this ProcessPayment method to add another 'if/else' check for BkashPayment.
+    /// This violates OCP because the processor is not closed for modification.
     /// </summary>
     public class PaymentProcessor
     {
-        public void ProcessPayment(PaymentInfo payment)
+        public void ProcessPayment(object payment, decimal amount)
         {
-            if (payment.Type == PaymentType.CreditCard)
+            if (payment is CreditCardPayment cardPayment)
             {
-                // Credit Card processing logic
-                Console.WriteLine($"Processing credit card payment of {payment.Amount}");
+                cardPayment.PayWithCard(amount);
             }
-            else if (payment.Type == PaymentType.PayPal)
+            else if (payment is PayPalPayment payPalPayment)
             {
-                // PayPal processing logic
-                Console.WriteLine($"Processing PayPal payment of {payment.Amount}");
+                payPalPayment.PayWithPayPal(amount);
             }
+            // If we add Bkash, we have to modify this file:
+            // else if (payment is BkashPayment bkash) { ... }
         }
     }
 }
